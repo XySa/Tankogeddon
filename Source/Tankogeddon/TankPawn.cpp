@@ -35,6 +35,12 @@ void ATankPawn::MoveForward(float AxisValue)
 	TargetForwardAxisValue = AxisValue;
 }
 
+void ATankPawn::MoveForward2(float AxisValue)
+{
+	TargetRightAxisValue = AxisValue;
+}
+
+
 // Called when the game starts or when spawned
 void ATankPawn::BeginPlay()
 {
@@ -49,8 +55,11 @@ void ATankPawn::Tick(float DeltaTime)
 
 	FVector CurrentLocation = GetActorLocation();
 	FVector ForwardVector = GetActorForwardVector();
+	FVector RightVector = GetActorRightVector();
 	FVector MovePosition = CurrentLocation + ForwardVector * MoveSpeed * TargetForwardAxisValue * DeltaTime;
+	FVector MovePosition2 = CurrentLocation + RightVector * MoveSpeed * TargetRightAxisValue * DeltaTime;
 	SetActorLocation(MovePosition, true);
+	SetActorLocation(MovePosition2, true);
 }
 
 

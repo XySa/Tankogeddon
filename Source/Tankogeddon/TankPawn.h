@@ -21,7 +21,8 @@ class TANKOGEDDON_API ATankPawn : public APawn
 
 	UFUNCTION()
 	void MoveForward(float AxisValue);
-
+	void MoveForward2(float AxisValue);
+	
 	protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
 	UStaticMeshComponent* BodyMesh;
@@ -50,4 +51,5 @@ class TANKOGEDDON_API ATankPawn : public APawn
 
 	private:
 	float TargetForwardAxisValue;
+	float TargetRightAxisValue;
 };
