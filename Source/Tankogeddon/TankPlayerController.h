@@ -28,5 +28,5 @@ class TANKOGEDDON_API ATankPlayerController : public APlayerController
 	protected:
 	virtual void BeginPlay() override;
 	void MoveForward(float AxisValue);
-	void MoveForward2(float AxisValue);
+	void MoveRight(float AxisValue);
 };
