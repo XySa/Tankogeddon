@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "TankPlayerController.generated.h"
@@ -10,23 +9,30 @@
 class ATankPawn;
 
 /**
- * 
+ * Main game player controller
  */
 UCLASS()
 class TANKOGEDDON_API ATankPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-		
-	protected:
-	UPROPERTY()
-	ATankPawn* TankPawn;
+	
+protected:
+    UPROPERTY()
+    ATankPawn* TankPawn;
 
-	public:
-	ATankPlayerController();
-	virtual void SetupInputComponent() override;
+    UPROPERTY()
+    FVector MousePos;
 
-	protected:
-	virtual void BeginPlay() override;
-	void MoveForward(float AxisValue);
-	void MoveRight(float AxisValue);
+public:
+    ATankPlayerController();
+    virtual void SetupInputComponent() override;
+    virtual void Tick(float DeltaTime) override;
+    FVector GetMousePos() { return MousePos; };
+
+protected:
+    virtual void BeginPlay() override;
+    void MoveForward(float AxisValue);
+    void RotateRight(float AxisValue);
+    void Fire();
+    void FireSpecial();
 };
