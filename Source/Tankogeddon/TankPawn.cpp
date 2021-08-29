@@ -55,22 +55,41 @@ void ATankPawn::BeginPlay()
 	Super::BeginPlay();
 	
     TankController = Cast<ATankPlayerController>(GetController());
-    SetupCannon();
+    SetupCannon(CannonClass);
 }
 
-void ATankPawn::SetupCannon()
+void ATankPawn::SetupCannon(TSubclassOf<ACannon> InCannonClass)
 {
-    if (Cannon)
+    if (ActiveCannon)
     {
-        Cannon->Destroy();
-        Cannon = nullptr;
+        ActiveCannon->Destroy();
+        ActiveCannon = nullptr;
     }
 
     FActorSpawnParameters Params;
     Params.Instigator = this;
     Params.Owner = this;
-    Cannon = GetWorld()->SpawnActor<ACannon>(CannonClass, Params);
-    Cannon->AttachToComponent(CannonSetupPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    ActiveCannon = GetWorld()->SpawnActor<ACannon>(InCannonClass, Params);
+    ActiveCannon->AttachToComponent(CannonSetupPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+}
+
+void ATankPawn::CycleCannon()
+{
+    Swap(ActiveCannon, InactiveCannon);
+    if (ActiveCannon)
+    {
+        ActiveCannon->SetVisibility(true);
+    }
+
+    if (InactiveCannon)
+    {
+        InactiveCannon->SetVisibility(false);
+    }
+}
+
+ACannon* ATankPawn::GetActiveCannon() const
+{
+    return ActiveCannon;
 }
 
 // Called every frame
@@ -85,7 +104,12 @@ void ATankPawn::Tick(float DeltaTime)
     FVector ForwardVector = GetActorForwardVector();
     FVector MovePosition = CurrentLocation + ForwardVector * CurrentForwardAxisValue * MoveSpeed * DeltaTime;
 
-    SetActorLocation(MovePosition, true);
+    FHitResult* SweepHitResult = nullptr;
+    SetActorLocation(MovePosition, true, SweepHitResult);
+    if (SweepHitResult)
+    {
+        CurrentForwardAxisValue = 0.f;
+    }
 
     // Tank rotation
     CurrentRightAxisValue = FMath::FInterpTo(CurrentRightAxisValue, TargetRightAxisValue, DeltaTime, RotationSmootheness);
@@ -113,17 +137,17 @@ void ATankPawn::Tick(float DeltaTime)
 
 void ATankPawn::Fire()
 {
-    if (Cannon)
+    if (ActiveCannon)
     {
-        Cannon->Fire();
+        ActiveCannon->Fire();
     }
 }
 
 void ATankPawn::FireSpecial()
 {
-    if (Cannon)
+    if (ActiveCannon)
     {
-        Cannon->FireSpecial();
+        ActiveCannon->FireSpecial();
     }
 }
 

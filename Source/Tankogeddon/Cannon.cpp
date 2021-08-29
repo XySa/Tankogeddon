@@ -10,6 +10,9 @@
 #include <Engine/World.h>
 
 #include "Tankogeddon.h"
+#include "Projectile.h"
+#include <DrawDebugHelpers.h>
+#include "ActorPoolSubsystem.h"
 
 // Sets default values
 ACannon::ACannon()
@@ -22,6 +25,7 @@ ACannon::ACannon()
 
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Cannon mesh"));
     Mesh->SetupAttachment(RootComponent);
+    Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     ProjectileSpawnPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("Spawn point"));
     ProjectileSpawnPoint->SetupAttachment(Mesh);
@@ -75,6 +79,17 @@ bool ACannon::HasSpecialFire() const
     return bHasSpecialFire;
 }
 
+void ACannon::SetVisibility(bool bIsVisible)
+{
+    Mesh->SetHiddenInGame(!bIsVisible);
+}
+
+void ACannon::AddAmmo(int32 InNumAmmo)
+{
+    NumAmmo = FMath::Clamp(NumAmmo + InNumAmmo, 0, MaxAmmo);
+    UE_LOG(LogTankogeddon, Log, TEXT("AddAmmo(%d)! NumAmmo: %d"), InNumAmmo, NumAmmo);
+}
+
 // Called when the game starts or when spawned
 void ACannon::BeginPlay()
 {
@@ -104,10 +119,40 @@ void ACannon::Shot()
     if (Type == ECannonType::FireProjectile)
     {
         GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1, FColor::Green, TEXT("Fire - projectile"));
+
+        UActorPoolSubsystem* Pool = GetWorld()->GetSubsystem<UActorPoolSubsystem>();
+        FTransform SpawnTransform(ProjectileSpawnPoint->GetComponentRotation(), ProjectileSpawnPoint->GetComponentLocation(), FVector::OneVector);
+        AProjectile* Projectile = Cast<AProjectile>(Pool->RetreiveActor(ProjectileClass, SpawnTransform));
+        if (Projectile)
+        {
+            Projectile->SetInstigator(GetInstigator());
+            Projectile->Start();
+        }
     }
     else
     {
         GEngine->AddOnScreenDebugMessage(INDEX_NONE, 1, FColor::Green, TEXT("Fire - trace"));
+
+        FHitResult HitResult;
+        FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("FireTrace")), true, this);
+        TraceParams.bTraceComplex = true;
+        TraceParams.bReturnPhysicalMaterial = false;
+
+        FVector Start = ProjectileSpawnPoint->GetComponentLocation();
+        FVector End = ProjectileSpawnPoint->GetForwardVector() * FireRange + Start;
+        if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility, TraceParams))
+        {
+            DrawDebugLine(GetWorld(), Start, HitResult.Location, FColor::Red, false, 0.5f, 0, 5);
+            if (HitResult.Component.IsValid() && HitResult.Component->GetCollisionObjectType() == ECollisionChannel::ECC_Destructible)
+            {
+                HitResult.Actor.Get()->Destroy();
+            }
+        }
+        else
+        {
+            DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 0.5f, 0, 5);
+        }
+
     }
 
     if (--ShotsLeft > 0)

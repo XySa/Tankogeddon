@@ -67,7 +67,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-    void SetupCannon();
 
 public:	
 	// Called every frame
@@ -79,6 +78,15 @@ public:
     UFUNCTION()
     void FireSpecial();
 
+    UFUNCTION()
+    void SetupCannon(TSubclassOf<ACannon> InCannonClass);
+
+    UFUNCTION()
+    void CycleCannon();
+
+    UFUNCTION()
+    ACannon* GetActiveCannon() const;
+
 private:
     float TargetForwardAxisValue = 0.f;
     float CurrentForwardAxisValue = 0.f;
@@ -89,5 +97,8 @@ private:
     ATankPlayerController* TankController;
 
     UPROPERTY()
-    ACannon* Cannon;
+    ACannon* ActiveCannon;
+
+    UPROPERTY()
+    ACannon* InactiveCannon;
 };
