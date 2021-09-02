@@ -31,12 +31,15 @@ void AProjectile::Start()
     GetWorld()->GetTimerManager().SetTimer(MovementTimerHandle, this, &AProjectile::Move, MoveRate, true, MoveRate);
     StartLocation = GetActorLocation();
     Mesh->SetHiddenInGame(false);
+    Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
 void AProjectile::Stop()
 {
+    OnDestroyedTarget.Clear();
     GetWorld()->GetTimerManager().ClearTimer(MovementTimerHandle);
     Mesh->SetHiddenInGame(true);
+    Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     
     UActorPoolSubsystem* Pool = GetWorld()->GetSubsystem<UActorPoolSubsystem>();
     if (Pool->IsActorInPool(this))
@@ -53,9 +56,11 @@ void AProjectile::OnMeshOverlapBegin(class UPrimitiveComponent* OverlappedComp, 
 {
     UE_LOG(LogTankogeddon, Warning, TEXT("Projectile %s collided with %s. "), *GetName(), *OtherActor->GetName());
     
+    bool bWasTargetDestroyed = false;
     if (OtherComp && OtherComp->GetCollisionObjectType() == ECollisionChannel::ECC_Destructible)
     {
         OtherActor->Destroy();
+        bWasTargetDestroyed = true;
     }
     else if (IDamageTaker* DamageTaker = Cast<IDamageTaker>(OtherActor))
     {
@@ -66,8 +71,13 @@ void AProjectile::OnMeshOverlapBegin(class UPrimitiveComponent* OverlappedComp, 
             DamageData.DamageValue = Damage;
             DamageData.DamageMaker = this;
             DamageData.Instigator = MyInstigator;
-            DamageTaker->TakeDamage(DamageData);
+            bWasTargetDestroyed = DamageTaker->TakeDamage(DamageData);
         }
+    }
+
+    if (bWasTargetDestroyed && OnDestroyedTarget.IsBound())
+    {
+        OnDestroyedTarget.Broadcast(OtherActor);
     }
 
     Stop();

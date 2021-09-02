@@ -46,27 +46,42 @@ void ATankPlayerController::BeginPlay()
 
 void ATankPlayerController::MoveForward(float AxisValue)
 {
-    TankPawn->MoveForward(AxisValue);
+    if (TankPawn)
+    {
+        TankPawn->MoveForward(AxisValue);
+    }
 }
 
 void ATankPlayerController::RotateRight(float AxisValue)
 {
-    TankPawn->RotateRight(AxisValue);
+    if (TankPawn)
+    {
+        TankPawn->RotateRight(AxisValue);
+    }
 }
 
 void ATankPlayerController::Fire()
 {
-    TankPawn->Fire();
+    if (TankPawn)
+    {
+        TankPawn->Fire();
+    }
 }
 
 void ATankPlayerController::FireSpecial()
 {
-    TankPawn->FireSpecial();
+    if (TankPawn)
+    {
+        TankPawn->FireSpecial();
+    }
 }
 
 void ATankPlayerController::CycleCannon()
 {
-    TankPawn->CycleCannon();
+    if (TankPawn)
+    {
+        TankPawn->CycleCannon();
+    }
 }
 
 void ATankPlayerController::DumpActorPoolSubsystemStats()

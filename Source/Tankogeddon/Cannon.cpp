@@ -13,6 +13,11 @@
 #include "Projectile.h"
 #include <DrawDebugHelpers.h>
 #include "ActorPoolSubsystem.h"
+#include "DamageTaker.h"
+#include <Particles/ParticleSystemComponent.h>
+#include <Components/AudioComponent.h>
+#include <Camera/CameraShake.h>
+#include <GameFramework/ForceFeedbackEffect.h>
 
 // Sets default values
 ACannon::ACannon()
@@ -29,6 +34,12 @@ ACannon::ACannon()
 
     ProjectileSpawnPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("Spawn point"));
     ProjectileSpawnPoint->SetupAttachment(Mesh);
+
+    ShootEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Shoot effect"));
+    ShootEffect->SetupAttachment(ProjectileSpawnPoint);
+
+    AudioEffect = CreateDefaultSubobject<UAudioComponent>(TEXT("Audio effect"));
+    AudioEffect->SetupAttachment(ProjectileSpawnPoint);
 }
 
 void ACannon::Fire()
@@ -43,6 +54,26 @@ void ACannon::Fire()
     ShotsLeft = NumShotsInSeries;
     Shot();
     
+    ShootEffect->ActivateSystem();
+    AudioEffect->Play();
+
+    if (GetOwner() && GetOwner() == GetWorld()->GetFirstPlayerController()->GetPawn())
+    {
+        if (ShootForceEffect)
+        {
+            FForceFeedbackParameters ShootForceEffectParams;
+            ShootForceEffectParams.bLooping = false;
+            ShootForceEffectParams.Tag = "ShootForceEffectParams";
+            GetWorld()->GetFirstPlayerController()->ClientPlayForceFeedback(ShootForceEffect, ShootForceEffectParams);
+        }
+
+        if (ShootShake)
+        {
+            GetWorld()->GetFirstPlayerController()->ClientPlayCameraShake(ShootShake);
+        }
+    }
+
+
     UE_LOG(LogTankogeddon, Log, TEXT("Fire! Ammo left: %d"), NumAmmo);
 }
 
@@ -126,6 +157,7 @@ void ACannon::Shot()
         if (Projectile)
         {
             Projectile->SetInstigator(GetInstigator());
+            Projectile->OnDestroyedTarget.AddUObject(this, &ACannon::NotifyTargetDestroyed);
             Projectile->Start();
         }
     }
@@ -143,9 +175,28 @@ void ACannon::Shot()
         if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility, TraceParams))
         {
             DrawDebugLine(GetWorld(), Start, HitResult.Location, FColor::Red, false, 0.5f, 0, 5);
+            bool bWasTargetDestroyed = false;
             if (HitResult.Component.IsValid() && HitResult.Component->GetCollisionObjectType() == ECollisionChannel::ECC_Destructible)
             {
                 HitResult.Actor.Get()->Destroy();
+                bWasTargetDestroyed = true;
+            }
+            else if (IDamageTaker* DamageTaker = Cast<IDamageTaker>(HitResult.Actor))
+            {
+                AActor* MyInstigator = GetInstigator();
+                if (HitResult.Actor != MyInstigator)
+                {
+                    FDamageData DamageData;
+                    DamageData.DamageValue = FireDamage;
+                    DamageData.DamageMaker = this;
+                    DamageData.Instigator = MyInstigator;
+                    bWasTargetDestroyed = DamageTaker->TakeDamage(DamageData);
+                }
+            }
+
+            if (bWasTargetDestroyed)
+            {
+                NotifyTargetDestroyed(HitResult.Actor.Get());
             }
         }
         else
@@ -163,5 +214,13 @@ void ACannon::Shot()
     else
     {
         GetWorld()->GetTimerManager().SetTimer(ReloadTimerHandle, this, &ACannon::Reload, 1.f / FireRate, false);
+    }
+}
+
+void ACannon::NotifyTargetDestroyed(AActor* Target)
+{
+    if (OnDestroyedTarget.IsBound())
+    {
+        OnDestroyedTarget.Broadcast(Target);
     }
 }

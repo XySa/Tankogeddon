@@ -39,6 +39,9 @@ public:
     void Start();
     void Stop();
 
+    DECLARE_MULTICAST_DELEGATE_OneParam(FOnDestoyedTarget, AActor*);
+    FOnDestoyedTarget OnDestroyedTarget;
+
 protected:
     UFUNCTION()
     void OnMeshOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
