@@ -3,20 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Pawn.h"
+#include "DamageTaker.h"
+#include "BasePawn.h"
 #include "TankPawn.generated.h"
 
 
-class UStaticMeshComponent;
+
 class USpringArmComponent;
 class UCameraComponent;
 class ATankPlayerController;
-class UArrowComponent;
-class ACannon;
 
 
 UCLASS()
-class TANKOGEDDON_API ATankPawn : public APawn
+class TANKOGEDDON_API ATankPawn : public ABasePawn
 {
 	GENERATED_BODY()
 
@@ -24,30 +23,12 @@ public:
 	// Sets default values for this pawn's properties
 	ATankPawn();
 
-    UFUNCTION()
-    void MoveForward(float AxisValue);
-
-    UFUNCTION()
-    void RotateRight(float AxisValue);
-
 protected:
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
-    UStaticMeshComponent* BodyMesh;
-    
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
-    UStaticMeshComponent* TurretMesh;
-
     UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
     USpringArmComponent* SpringArm;
 
     UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
     UCameraComponent* Camera;
-
-    UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
-    UArrowComponent* CannonSetupPoint;
-
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Turret|Cannon")
-    TSubclassOf<ACannon> CannonClass;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement|Speed")
     float MoveSpeed = 100.f;
@@ -61,23 +42,49 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement|Speed")
     float RotationSmootheness = 0.1f;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement|Speed")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Turret")
     float TurretRotationSpeed = 0.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Move params|Patrol points", Meta = (MakeEditWidget = true))
+    TArray<FVector> PatrollingPoints;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Move params|Accurency")
+    float MovementAccuracy = 50.f;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-    void SetupCannon();
+    virtual void TargetDestroyed(AActor* Target) override;
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
     UFUNCTION()
-    void Fire();
+    void MoveForward(float AxisValue);
 
     UFUNCTION()
-    void FireSpecial();
+    void RotateRight(float AxisValue);
+
+    UFUNCTION()
+    const TArray<FVector>& GetPatrollingPoints() 
+    { 
+        return PatrollingPoints; 
+    };
+    
+    UFUNCTION()
+    float GetMovementAccurency() 
+    { 
+        return MovementAccuracy; 
+    };
+
+    UFUNCTION()
+    FVector GetTurretForwardVector();
+
+    UFUNCTION()
+    void RotateTurretTo(FVector TargetPosition);
+
+    UFUNCTION()
+    FVector GetEyesPosition();
 
 private:
     float TargetForwardAxisValue = 0.f;
@@ -85,9 +92,8 @@ private:
     float TargetRightAxisValue = 0.f;
     float CurrentRightAxisValue = 0.f;
 
-    UPROPERTY()
-    ATankPlayerController* TankController;
+    int32 AccumulatedScores = 0;
 
     UPROPERTY()
-    ACannon* Cannon;
+    ATankPlayerController* TankController;
 };

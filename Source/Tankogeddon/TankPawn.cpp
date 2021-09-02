@@ -12,21 +12,15 @@
 #include "Tankogeddon.h"
 #include "TankPlayerController.h"
 #include "Cannon.h"
+#include "HealthComponent.h"
+#include <Components/BoxComponent.h>
+#include "Scorable.h"
 
 // Sets default values
 ATankPawn::ATankPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Tank body"));
-	RootComponent = BodyMesh;
-
-    TurretMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Tank turret"));
-    TurretMesh->SetupAttachment(BodyMesh);
-
-    CannonSetupPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("Cannon setup point"));
-    CannonSetupPoint->AttachToComponent(TurretMesh, FAttachmentTransformRules::KeepRelativeTransform);
 
     SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring arm"));
     SpringArm->SetupAttachment(BodyMesh);
@@ -49,28 +43,40 @@ void ATankPawn::RotateRight(float AxisValue)
     TargetRightAxisValue = AxisValue;
 }
 
+FVector ATankPawn::GetTurretForwardVector()
+{
+    return TurretMesh->GetForwardVector();
+}
+
+void ATankPawn::RotateTurretTo(FVector TargetPosition)
+{
+    FRotator TargetRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), TargetPosition);
+    FRotator CurrRotation = TurretMesh->GetComponentRotation();
+    TargetRotation.Pitch = CurrRotation.Pitch;
+    TargetRotation.Roll = CurrRotation.Roll;
+    TurretMesh->SetWorldRotation(FMath::RInterpConstantTo(CurrRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), TurretRotationSpeed));
+}
+
+FVector ATankPawn::GetEyesPosition()
+{
+    return CannonSetupPoint->GetComponentLocation();
+}
+
 // Called when the game starts or when spawned
 void ATankPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	
     TankController = Cast<ATankPlayerController>(GetController());
-    SetupCannon();
 }
 
-void ATankPawn::SetupCannon()
+void ATankPawn::TargetDestroyed(AActor* Target)
 {
-    if (Cannon)
+    if (IScorable* Scorable = Cast<IScorable>(Target))
     {
-        Cannon->Destroy();
-        Cannon = nullptr;
+        AccumulatedScores += Scorable->GetScores();
+        UE_LOG(LogTankogeddon, Log, TEXT("Destroyed target %s. Current scores: %d"), *Target->GetName(), AccumulatedScores);
     }
-
-    FActorSpawnParameters Params;
-    Params.Instigator = this;
-    Params.Owner = this;
-    Cannon = GetWorld()->SpawnActor<ACannon>(CannonClass, Params);
-    Cannon->AttachToComponent(CannonSetupPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
 // Called every frame
@@ -85,7 +91,12 @@ void ATankPawn::Tick(float DeltaTime)
     FVector ForwardVector = GetActorForwardVector();
     FVector MovePosition = CurrentLocation + ForwardVector * CurrentForwardAxisValue * MoveSpeed * DeltaTime;
 
-    SetActorLocation(MovePosition, true);
+    FHitResult* SweepHitResult = nullptr;
+    SetActorLocation(MovePosition, true, SweepHitResult);
+    if (SweepHitResult)
+    {
+        CurrentForwardAxisValue = 0.f;
+    }
 
     // Tank rotation
     CurrentRightAxisValue = FMath::FInterpTo(CurrentRightAxisValue, TargetRightAxisValue, DeltaTime, RotationSmootheness);
@@ -103,27 +114,6 @@ void ATankPawn::Tick(float DeltaTime)
     if (TankController)
     {
         FVector MousePos = TankController->GetMousePos();
-        FRotator TargetRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), MousePos);
-        FRotator CurrRotation = TurretMesh->GetComponentRotation();
-        TargetRotation.Pitch = CurrRotation.Pitch;
-        TargetRotation.Roll = CurrRotation.Roll;
-        TurretMesh->SetWorldRotation(FMath::RInterpConstantTo(CurrRotation, TargetRotation, DeltaTime, TurretRotationSpeed));
+        RotateTurretTo(MousePos);
     }
 }
-
-void ATankPawn::Fire()
-{
-    if (Cannon)
-    {
-        Cannon->Fire();
-    }
-}
-
-void ATankPawn::FireSpecial()
-{
-    if (Cannon)
-    {
-        Cannon->FireSpecial();
-    }
-}
-

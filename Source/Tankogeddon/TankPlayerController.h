@@ -35,4 +35,8 @@ protected:
     void RotateRight(float AxisValue);
     void Fire();
     void FireSpecial();
+    void CycleCannon();
+
+    UFUNCTION(exec)
+    void DumpActorPoolSubsystemStats();
 };
