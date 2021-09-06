@@ -32,7 +32,7 @@ protected:
     UParticleSystemComponent* ShootEffect;
 
     UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
-    UAudioComponent* AudioEffect;
+    UAudioComponent* ShotAudioEffect;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Fire params")
     TSubclassOf<AProjectile> ProjectileClass;

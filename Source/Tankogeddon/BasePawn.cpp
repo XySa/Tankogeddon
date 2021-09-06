@@ -8,12 +8,15 @@
 #include "HealthComponent.h"
 #include "Tankogeddon.h"
 #include "Cannon.h"
+#include <Kismet/KismetMathLibrary.h>
+#include <Kismet/GameplayStatics.h>
+#include "AmmoBox.h"
 
 // Sets default values
 ABasePawn::ABasePawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
     BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body Mesh"));
     BodyMesh->bEditableWhenInherited = true;
@@ -124,10 +127,55 @@ void ABasePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    if (bIsTurretTargetSet)
+    {
+        FRotator TargetRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), TurretTarget);
+        FRotator CurrRotation = TurretMesh->GetComponentRotation();
+        TargetRotation.Pitch = CurrRotation.Pitch;
+        TargetRotation.Roll = CurrRotation.Roll;
+        TurretMesh->SetWorldRotation(FMath::RInterpConstantTo(CurrRotation, TargetRotation, DeltaTime, TurretRotationSpeed));
+    }
+    else
+    {
+        FRotator NewRotation = TurretMesh->GetComponentRotation();
+        NewRotation .Yaw += TurretRotationSpeed * DeltaTime * TurretRotationAxis;
+        TurretMesh->SetWorldRotation(NewRotation);
+    }
+}
+
+FVector ABasePawn::GetTurretForwardVector()
+{
+    return TurretMesh->GetForwardVector();
+}
+
+void ABasePawn::SetTurretRotationAxis(float AxisValue)
+{
+    TurretRotationAxis = AxisValue;
+    bIsTurretTargetSet = false;
+}
+
+void ABasePawn::SetTurretTarget(FVector TargetPosition)
+{
+    TurretTarget = TargetPosition;
+    bIsTurretTargetSet = true;
+}
+
+FVector ABasePawn::GetEyesPosition()
+{
+    return CannonSetupPoint->GetComponentLocation();
 }
 
 void ABasePawn::Die()
 {
+    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DestuctionParticleSystem, GetActorTransform());
+    UGameplayStatics::PlaySoundAtLocation(GetWorld(), DestructionSound, GetActorLocation());
+    if (DestructionBonusBox)
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.bNoFail = true;
+        GetWorld()->SpawnActor<AAmmoBox>(DestructionBonusBox, GetActorTransform(), SpawnParams);
+    }
+
     Destroy();
 }
 

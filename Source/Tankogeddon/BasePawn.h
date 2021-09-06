@@ -14,6 +14,9 @@ class UArrowComponent;
 class ACannon;
 class UHealthComponent;
 class UBoxComponent;
+class UParticleSystem;
+class USoundBase;
+class AAmmoBox;
 
 UCLASS()
 class TANKOGEDDON_API ABasePawn : public APawn, public IDamageTaker
@@ -43,10 +46,28 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Turret|Cannon")
     TSubclassOf<ACannon> CannonClass;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Effects")
+    UParticleSystem* DestuctionParticleSystem;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    USoundBase* DestructionSound;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Turret")
+    float TurretRotationSpeed = 0.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bonus")
+    TSubclassOf<AAmmoBox> DestructionBonusBox;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
     virtual void Destroyed() override;
     virtual void TargetDestroyed(AActor* Target);
+
+    UFUNCTION()
+    virtual void Die();
+
+    UFUNCTION()
+    virtual void DamageTaken(float InDamage);
 
 public:	
     UFUNCTION()
@@ -70,6 +91,18 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+    UFUNCTION()
+    FVector GetTurretForwardVector();
+
+    UFUNCTION()
+    void SetTurretRotationAxis(float AxisValue);
+
+    UFUNCTION()
+    void SetTurretTarget(FVector TargetPosition);
+
+    UFUNCTION()
+    FVector GetEyesPosition();
+
 private:
     UPROPERTY()
     ACannon* ActiveCannon;
@@ -77,9 +110,9 @@ private:
     UPROPERTY()
     ACannon* InactiveCannon;
 
-    UFUNCTION()
-    void Die();
+    UPROPERTY()
+    FVector TurretTarget;
 
-    UFUNCTION()
-    void DamageTaken(float InDamage);
+    bool bIsTurretTargetSet = false;
+    float TurretRotationAxis = 0.f;
 };
