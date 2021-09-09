@@ -12,6 +12,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class ATankPlayerController;
+class ATargetPoint;
 
 
 UCLASS()
@@ -42,18 +43,23 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement|Speed")
     float RotationSmootheness = 0.1f;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Turret")
-    float TurretRotationSpeed = 0.5f;
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Move params|Patrol points", Meta = (MakeEditWidget = true))
-    TArray<FVector> PatrollingPoints;
+    TArray<ATargetPoint*> PatrollingPoints;
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Move params|Accurency")
     float MovementAccuracy = 50.f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    UForceFeedbackEffect* HitForceEffect;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    TSubclassOf<UMatineeCameraShake> HitShake;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
     virtual void TargetDestroyed(AActor* Target) override;
+
+    virtual void DamageTaken(float DamageValue) override;
 
 public:	
 	// Called every frame
@@ -66,25 +72,16 @@ public:
     void RotateRight(float AxisValue);
 
     UFUNCTION()
-    const TArray<FVector>& GetPatrollingPoints() 
-    { 
-        return PatrollingPoints; 
-    };
+    TArray<FVector> GetPatrollingPoints();
+
+    UFUNCTION()
+    void SetPatrollingPoints(const TArray<ATargetPoint*>& NewPatrollingPoints);
     
     UFUNCTION()
     float GetMovementAccurency() 
     { 
         return MovementAccuracy; 
     };
-
-    UFUNCTION()
-    FVector GetTurretForwardVector();
-
-    UFUNCTION()
-    void RotateTurretTo(FVector TargetPosition);
-
-    UFUNCTION()
-    FVector GetEyesPosition();
 
 private:
     float TargetForwardAxisValue = 0.f;
@@ -93,7 +90,4 @@ private:
     float CurrentRightAxisValue = 0.f;
 
     int32 AccumulatedScores = 0;
-
-    UPROPERTY()
-    ATankPlayerController* TankController;
 };

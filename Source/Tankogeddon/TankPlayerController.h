@@ -21,13 +21,14 @@ protected:
     ATankPawn* TankPawn;
 
     UPROPERTY()
-    FVector MousePos;
+    FVector2D LastFrameMousePosition;
+
+    bool bIsControllingFromMouse = false;
 
 public:
     ATankPlayerController();
     virtual void SetupInputComponent() override;
     virtual void Tick(float DeltaTime) override;
-    FVector GetMousePos() { return MousePos; };
 
 protected:
     virtual void BeginPlay() override;

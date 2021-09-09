@@ -15,8 +15,12 @@
 // Sets default values
 ATurret::ATurret()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+
+}
+
+void ATurret::PostInitializeComponents()
+{
+    Super::PostInitializeComponents();
 
     UStaticMesh* TurretMeshTemp = LoadObject<UStaticMesh>(this, *TurretMeshPath);
     if (TurretMeshTemp)
@@ -34,51 +38,4 @@ ATurret::ATurret()
 int32 ATurret::GetScores() const
 {
     return DestructionScores;
-}
-
-// Called when the game starts or when spawned
-void ATurret::BeginPlay()
-{
-	Super::BeginPlay();
-	
-    PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
-
-    FTimerHandle TargetingTimerHandle;
-    GetWorld()->GetTimerManager().SetTimer(TargetingTimerHandle, this, &ATurret::Targeting, TargetingRate, true, TargetingRate);
-}
-
-void ATurret::Targeting()
-{
-    if (IsPlayerInRange())
-    {
-        RotateToPlayer();
-    }
-
-    if (CanFire() && GetActiveCannon() && GetActiveCannon()->IsReadyToFire())
-    {
-        Fire();
-    }
-}
-
-void ATurret::RotateToPlayer()
-{
-    FRotator TargetRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), PlayerPawn->GetActorLocation());
-    FRotator CurrRotation = TurretMesh->GetComponentRotation();
-    TargetRotation.Pitch = CurrRotation.Pitch;
-    TargetRotation.Roll = CurrRotation.Roll;
-    TurretMesh->SetWorldRotation(FMath::RInterpConstantTo(CurrRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), TargetingSpeed));
-}
-
-bool ATurret::IsPlayerInRange()
-{
-    return FVector::Distance(PlayerPawn->GetActorLocation(), GetActorLocation()) <= TargetingRange;
-}
-
-bool ATurret::CanFire()
-{
-    FVector TargetingDir = TurretMesh->GetForwardVector();
-    FVector DirToPlayer = PlayerPawn->GetActorLocation() - GetActorLocation();
-    DirToPlayer.Normalize();
-    float AimAngle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(TargetingDir, DirToPlayer)));
-    return AimAngle <= Accurency;
 }

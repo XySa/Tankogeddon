@@ -38,8 +38,8 @@ ACannon::ACannon()
     ShootEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Shoot effect"));
     ShootEffect->SetupAttachment(ProjectileSpawnPoint);
 
-    AudioEffect = CreateDefaultSubobject<UAudioComponent>(TEXT("Audio effect"));
-    AudioEffect->SetupAttachment(ProjectileSpawnPoint);
+    ShotAudioEffect = CreateDefaultSubobject<UAudioComponent>(TEXT("Audio effect"));
+    ShotAudioEffect->SetupAttachment(ProjectileSpawnPoint);
 }
 
 void ACannon::Fire()
@@ -55,7 +55,7 @@ void ACannon::Fire()
     Shot();
     
     ShootEffect->ActivateSystem();
-    AudioEffect->Play();
+    ShotAudioEffect->Play();
 
     if (GetOwner() && GetOwner() == GetWorld()->GetFirstPlayerController()->GetPawn())
     {
@@ -69,7 +69,7 @@ void ACannon::Fire()
 
         if (ShootShake)
         {
-            GetWorld()->GetFirstPlayerController()->ClientPlayCameraShake(ShootShake);
+            GetWorld()->GetFirstPlayerController()->ClientStartCameraShake(ShootShake);
         }
     }
 

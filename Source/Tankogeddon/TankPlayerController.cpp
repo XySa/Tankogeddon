@@ -19,28 +19,52 @@ void ATankPlayerController::SetupInputComponent()
     InputComponent->BindAction("Fire",IE_Pressed, this, &ATankPlayerController::Fire);
     InputComponent->BindAction("FireSpecial",IE_Pressed, this, &ATankPlayerController::FireSpecial);
     InputComponent->BindAction("CycleCannon",IE_Pressed, this, &ATankPlayerController::CycleCannon);
+    InputComponent->BindAxis("RotateTurretRight");
 }
 
 void ATankPlayerController::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    FVector MouseDirection;
-    DeprojectMousePositionToWorld(MousePos, MouseDirection);
+    if (!TankPawn)
+    {
+        return;
+    }
 
-    FVector PawnPos = TankPawn->GetActorLocation();
-    MousePos.Z = PawnPos.Z;
-    FVector Dir = MousePos - PawnPos;
-    Dir.Normalize();
-    MousePos = PawnPos + Dir * 1000.f;
+    FVector2D MouseScreenPosition;
+    GetMousePosition(MouseScreenPosition.X, MouseScreenPosition.Y);
+    bool bWasMouseMoved = !LastFrameMousePosition.Equals(MouseScreenPosition);
+    LastFrameMousePosition = MouseScreenPosition;
 
-    DrawDebugLine(GetWorld(), PawnPos, MousePos, FColor::Green, false, 0.1f, 0.f, 5.f);
+    float TurretRotationAxis = GetInputAxisValue("RotateTurretRight");
+    if (FMath::IsNearlyZero(TurretRotationAxis) && (bWasMouseMoved || bIsControllingFromMouse))
+    {
+        bIsControllingFromMouse = true;
+        FVector WorldMousePosition, MouseDirection;
+        DeprojectMousePositionToWorld(WorldMousePosition, MouseDirection);
+
+        FVector PawnPos = TankPawn->GetActorLocation();
+        WorldMousePosition.Z = PawnPos.Z;
+        FVector NewTurretDirection = WorldMousePosition - PawnPos;
+        NewTurretDirection.Normalize();
+
+        FVector TurretTarget = PawnPos + NewTurretDirection * 1000.f;
+        TankPawn->SetTurretTarget(TurretTarget);
+    }
+    else
+    {
+        bIsControllingFromMouse = false;
+        TankPawn->SetTurretRotationAxis(TurretRotationAxis);
+    }
+
+    DrawDebugLine(GetWorld(), TankPawn->GetEyesPosition(), TankPawn->GetEyesPosition() + TankPawn->GetTurretForwardVector() * 1000.f, FColor::Green, false, 0.1f, 0.f, 5.f);
 }
 
 void ATankPlayerController::BeginPlay()
 {
     Super::BeginPlay();
 
+    GetMousePosition(LastFrameMousePosition.X, LastFrameMousePosition.Y);
     TankPawn = Cast<ATankPawn>(GetPawn());
 }
 
