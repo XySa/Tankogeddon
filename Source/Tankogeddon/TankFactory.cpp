@@ -11,6 +11,9 @@
 #include "TankPawn.h"
 #include <Kismet/GameplayStatics.h>
 #include "MapLoader.h"
+#include <Particles/ParticleSystemComponent.h>
+#include <Components/AudioComponent.h>
+#include <Engine/World.h>
 
 // Sets default values
 ATankFactory::ATankFactory()
@@ -24,9 +27,21 @@ ATankFactory::ATankFactory()
     BuildingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Building Mesh"));
     BuildingMesh->SetupAttachment(SceneComp);
 
+    DestroyedMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Destroyed Mesh"));
+    DestroyedMesh->SetupAttachment(SceneComp);
+    DestroyedMesh->SetVisibility(false);
+
     TankSpawnPoint = CreateDefaultSubobject<UArrowComponent>(TEXT("Cannon setup point"));
     TankSpawnPoint->AttachToComponent(SceneComp, FAttachmentTransformRules::KeepRelativeTransform);
 
+    TankSpawnVFX = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Tank spawn VFX"));
+    TankSpawnVFX->SetupAttachment(TankSpawnPoint);
+    TankSpawnVFX->bAutoActivate = false;
+
+    TankSpawnSFX = CreateDefaultSubobject<UAudioComponent>(TEXT("Tank spawn SFX"));
+    TankSpawnSFX->SetupAttachment(TankSpawnPoint);
+    TankSpawnSFX->bAutoActivate = false;
+    
     HitCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Hit collider"));
     HitCollider->SetupAttachment(SceneComp);
 
@@ -45,6 +60,8 @@ void ATankFactory::BeginPlay()
 {
 	Super::BeginPlay();
 
+    BuildingMesh->SetVisibility(true);
+    DestroyedMesh->SetVisibility(false);
     if (LinkedMapLoader)
     {
         LinkedMapLoader->SetIsActivated(false);
@@ -62,6 +79,9 @@ void ATankFactory::SpawnNewTank()
     NewTank->SetPatrollingPoints(TankWayPoints);
     //
     UGameplayStatics::FinishSpawningActor(NewTank, SpawnTransform);
+
+    TankSpawnVFX->ActivateSystem();
+    TankSpawnSFX->Play();
 }
 
 void ATankFactory::Die()
@@ -70,7 +90,10 @@ void ATankFactory::Die()
     {
         LinkedMapLoader->SetIsActivated(true);
     }
-    Destroy();
+
+    BuildingMesh->SetVisibility(false);
+    DestroyedMesh->SetVisibility(true);
+    K2_PlayOnDie();
 }
 
 void ATankFactory::DamageTaked(float DamageValue)

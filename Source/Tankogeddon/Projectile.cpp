@@ -11,6 +11,7 @@
 #include "ActorPoolSubsystem.h"
 #include "DamageTaker.h"
 #include "GameStructs.h"
+#include <Components/PrimitiveComponent.h>
 
 // Sets default values
 AProjectile::AProjectile()
@@ -73,6 +74,15 @@ void AProjectile::OnMeshOverlapBegin(class UPrimitiveComponent* OverlappedComp, 
         DamageData.DamageMaker = this;
         DamageData.Instigator = GetInstigator();
         bWasTargetDestroyed = DamageTaker->TakeDamage(DamageData);
+    }
+    else 
+    {
+        UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(OtherComp);
+        if (PrimComp && PrimComp->IsSimulatingPhysics())
+        {
+            FVector ForceVector = GetActorForwardVector();
+            PrimComp->AddImpulseAtLocation(ForceVector * PushForce, SweepResult.ImpactPoint);
+        }
     }
 
     if (bWasTargetDestroyed && OnDestroyedTarget.IsBound())
