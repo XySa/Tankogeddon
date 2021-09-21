@@ -17,10 +17,10 @@ class TANKOGEDDON_API UHealthComponent : public UActorComponent
     DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDie);
 
 protected:
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Health values")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Max Health values")
     float MaxHealth = 10.f;
 
-    UPROPERTY()
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Health values")
     float CurrentHealth;
 
 public:
